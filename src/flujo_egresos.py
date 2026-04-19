@@ -7,7 +7,9 @@ from src.schema.IEgresos import EgresoItem
 from src.bot.steps_egresos import BotEgresos as Bot
 from src.utils.cerrar_programa import cerrar_siep_seguro
 from src.coordenadas.abrir_siep import abrir_siep_por_coordenadas
+from src.egresos.utils.reintentar_desde_nieto import reintar_desde_nieto
 from typing import List
+from src.egresos.debug.leer_celda import UtilsModificar
 from pynput.keyboard import Controller
 from src.sistema.fault import cierre_fast
 from src.egresos.excel.escritor_egresos import EscritorEgresos
@@ -197,28 +199,52 @@ def flujo_egresos(datos: List[EgresoItem]):
                     
                     print(f"\nResultado finalizar: {fin}")
                     
-                    time.sleep(25)
+                    tiempo = 25
+                    tiempo_extra = 0 if len(lote.get('deber', [])) > 15 else 0
+                    tiempo_total = tiempo + tiempo_extra
+                    print(f"\n\tTiempo de espera dado: {tiempo_total}\n")
+                    time.sleep(tiempo_total)
 
                 result = bot.manipular_nieto_fast()
-                
+
                 print(f"\nRESULTADO FINAL VENTANA NIETA: {result}")
-                
+
+                opcion2 = False
+                if not result:
+                    print("No se detectó ventana nieta")
+                    ScreenImgEgresos.here(lote=lote, nombre=f"ventana_nieta_no_detectada", num=i)
+                    print("Cerrando ventana nieta")
+                    pyautogui.click(900, 213)
+                    time.sleep(5)
+                    ScreenImgEgresos.here(lote=lote, nombre=f"ventana_nieta_cerrada", num=i)
+                    
+                    UtilsModificar.buscar_voucher()
+
+                    result = True
+                    opcion2 = True
+
                 ScreenImgEgresos.here(lote=lote, nombre=f"impresion_voucher", num=i)
                 
-                print("Simulacion Abrir ventana nieta")
-                bot.maximizar_ventana()
+                if not opcion2:
+                    print("Simulacion Abrir ventana nieta")
+                    bot.maximizar_ventana()
 
                 if result:
                     if lote.get('agregar', []):
-                        bot.click_modificar_tabla()
+
+                        if not opcion2:
+                            bot.click_modificar_tabla()
+                        else:
+                            UtilsModificar.click_modificar()
                     
                         ScreenImgEgresos.here(lote=lote, nombre=f"modificar_tabla", num=i)
                 
                         num_filas_actual = bot.obtener_cantidad_filas()
                         print(f"TABLAS numero de FILAS: {num_filas_actual}")
                 
-                    bot.maximizar_ventana()
-                    print("Se maximizó ventana")
+                    if not opcion2:
+                        bot.maximizar_ventana()
+                        print("Se maximizó ventana")
                     
                     # ================== AGREGAR ==================
 
@@ -237,7 +263,6 @@ def flujo_egresos(datos: List[EgresoItem]):
                         cant_total = cant_deber + cant_agregar + 1
                         print(f"CANT TOTAL: {cant_deber} + {cant_agregar} + 1 = {cant_total}")
                         
-
                         add_fila = bot.agregar_datos_ultima_fila(cant_total)
 
                         if not add_fila:
@@ -327,6 +352,7 @@ def flujo_egresos(datos: List[EgresoItem]):
 
             except Exception as e:
                 print(f"[ERROR LOTE] {e}")
+                input("PAUSA STOP BYE")
                 resultado = verificar_fault(lote, write_log)
                 if resultado == "ERROR": return "ERROR"
                 # Si verificar_fault no detectó error en SIEP, registrar la excepción como observación
