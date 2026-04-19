@@ -94,13 +94,14 @@ class UtilsModificar:
         time.sleep(5)
 
 
-    def buscar_voucher():
+    def buscar_voucher(maximizar: bool = True):
         print("Buscanco el último voucher")
         pyautogui.click(498, 244)
         time.sleep(4)
         pyautogui.click(141, 274)
-        time.sleep(20)
-        pyautogui.click(882, 214)
+        time.sleep(30)
+        if maximizar:
+            pyautogui.click(882, 214)
         time.sleep(3)
 
 
