@@ -191,7 +191,6 @@ class BotEgresos():
         except Exception as e:
             print(f"[numero_documento] {e}")
 
-
     def ir_a_favor_de_control(self, cliente: str, ot: bool):
         try:
             v = self.voucher
@@ -245,84 +244,6 @@ class BotEgresos():
 
                     if not safe_type(dlg, cliente, timeout=12, with_spaces=True):
                         return False
-
-            time.sleep(1)
-            if cliente.strip() == 'VARIOS':
-                print('VARIOS??')
-                pyautogui.click(327, 321)
-                time.sleep(2)
-            
-            safe_type(dlg, "{ENTER}{ENTER}")
-            v.type_keys("{TAB}")
-
-            print("Depositario seleccionado")
-
-            try:
-                dlg.close()
-                print("[debug] Ventana cerrada: cliente NO existe")
-                msg = f"Cliente {cliente} NO existe"
-                self.cerrar_voucher(p=0)
-                return f"CONTROL-{msg}"
-            except Exception as e:
-                print("[debug] Ventana no se pudo cerrar: cliente EXISTE")
-                return True
-
-        except Exception as e:
-            print(f"Fallo: {e}")
-            self.voucher.set_focus()
-            pyautogui.click(351, 416)
-            time.sleep(0.3)
-            pyautogui.press('f1')
-            return "MODO_COORDENADAS"
-    
-    def v1_ir_a_favor_de_control(self, cliente: str, ot: bool):
-        try:
-            v = self.voucher
-            ventana_rect = self.voucher.rectangle()
-            
-            offset_x = 351 - ventana_rect.left
-            offset_y = 416 - ventana_rect.top
-            
-            click_x = ventana_rect.left + offset_x
-            click_y = ventana_rect.top + offset_y
-            
-            self.voucher.set_focus()
-            time.sleep(0.2)
-            pyautogui.click(click_x, click_y)
-            time.sleep(0.3)
-            pyautogui.press('f1')
-            print(f"F1 enviado en coordenadas dinámicas ({click_x}, {click_y})")
-
-            time.sleep(3)
-
-            dlg = self.app.window(title_re=".*Lista de Cliente Proveedores.*")
-            dlg.set_focus()
-
-
-
-            if ot:
-                print(f"[debug] Buscando cliente: {cliente}")
-                
-                dni, cta = obtener_dni_cta_ot(nombre=cliente)
-                
-                print(f"[debug] DNI: {dni}, CTA: {cta}")
-                
-                dni = dni.upper()
-                time.sleep(0.5)
-
-                print("Limpiando el campo")
-                safe_type(dlg, "^a{DEL}")
-
-                if not safe_type(dlg, dni, timeout=12, with_spaces=True):
-                    return False
-            else:
-                for key in ["{TAB}", "{TAB}", "{UP}", "{TAB}", "{TAB}", "{TAB}", "{TAB}"]:
-                    if not safe_type(dlg, key, timeout=300):
-                        print("[depositario] La ventana no respondió al enviar teclas")
-                        return False
-
-                if not safe_type(dlg, cliente, timeout=12, with_spaces=True):
-                    return False
 
             time.sleep(1)
             if cliente.strip() == 'VARIOS':
@@ -437,19 +358,19 @@ class BotEgresos():
         try:
             campo = self.voucher.child_window(control_id=1012, class_name="PBEDIT105")
             texto = campo.window_text().strip()
-            
+
             print(f"Valor obtenido de cargo: {texto}")
-            return float(texto)
+            return float(texto.replace(",", ""))
         except (ValueError, TypeError, Exception):
             return None
-        
+
     def obtener_valor_campo_abonos(self):
         try:
             campo = self.voucher.child_window(control_id=1009, class_name="PBEDIT105")
             texto = campo.window_text().strip()
-            
+
             print(f"Valor obtenido de abono: {texto}")
-            return float(texto)
+            return float(texto.replace(",", ""))
         except (ValueError, TypeError, Exception) as e:
             print(f"Error Abonos: {e}")
             return None
@@ -735,27 +656,31 @@ class BotEgresos():
             return False
 
     def obtener_cantidad_filas(self):
-        # Obtenemos todos los Edits de la ventana
-        todos_los_edits = self.win_impresion.descendants(control_type="Edit")
+        try:
+            # Obtenemos todos los Edits de la ventana
+            todos_los_edits = self.win_impresion.descendants(control_type="Edit")
 
-        filas = 0
-        fila_actual = {}
+            filas = 0
+            fila_actual = {}
 
-        for edit in todos_los_edits:
-            nombre_interno = edit.window_text()
+            for edit in todos_los_edits:
+                nombre_interno = edit.window_text()
 
-            # Detecta inicio de nueva fila
-            if nombre_interno == "compr" and fila_actual:
+                # Detecta inicio de nueva fila
+                if nombre_interno == "compr" and fila_actual:
+                    filas += 1
+                    fila_actual = {}
+
+                fila_actual[nombre_interno] = edit
+
+            if fila_actual:
                 filas += 1
-                fila_actual = {}
 
-            fila_actual[nombre_interno] = edit
-
-        if fila_actual:
-            filas += 1
-
-        time.sleep(2)
-        return max(filas - 1, 0)
+            time.sleep(2)
+            return max(filas - 1, 0)
+        except Exception as e:
+            print(f"❌ No se pudo obtener filas: {e}")
+            return -1
 
     def click_actualizar_tabla(self):
         try:
@@ -1240,6 +1165,7 @@ class BotEgresos():
             y_final = 192
             pyautogui.click(x_final, y_final)
             print(f"✅ Clic en Cuenta (Fila {fila}) realizado en: {x_final}, {y_final}")
+            time.sleep(1)
             return True
 
         except Exception as e:
