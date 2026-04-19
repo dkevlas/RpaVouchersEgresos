@@ -14,13 +14,14 @@ from src.egresos.mensaje.msg_no_continua import crear_msg_egresos_no_continua
 from src.sistema.eventos import mensaje_eventos
 from typing import List
 from src.egresos.datos.obtener_datos_egresos import obtener_datos_egresos
+from src.utils.eliminar_log import eliminar_log
 from src.sistema.fault import cierre_fast
 
 LOCK_FILE = os.path.join(PathFolder.FOLDER_BASE, 'app.lock')
 
 ELIMINAR = True
 
-def botVouchersEgresos(cant: int = 40):
+def botVouchersEgresos(cant: int = 40, path_log: str = None):
     global ELIMINAR
     try:        
         time.sleep(2)
@@ -37,6 +38,7 @@ def botVouchersEgresos(cant: int = 40):
             else:
                 print(f'Ya existe una ejecución... Deteniendo flujo')
                 ELIMINAR = False
+                eliminar_log(path_log)
                 time.sleep(5)
                 os._exit(0)
 
@@ -59,6 +61,7 @@ def botVouchersEgresos(cant: int = 40):
                     asunto=results.get("asunto")
                 )
             
+            eliminar_log(path_log)
             time.sleep(15)
             os._exit(0)    
         
