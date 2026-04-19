@@ -10,14 +10,14 @@ from bot_egresos import botVouchersEgresos
 
 base_path = Path(sys.executable).parent
 
-setup_stdout_logger(base_path)
+path_log = setup_stdout_logger(base_path)
 
 LOCK_FILE = os.path.join(PathFolder.FOLDER_BASE, 'app.lock')
 
 ELIMINAR = True
 
 try:
-    botVouchersEgresos(cant=3)
+    botVouchersEgresos(cant=3, path_log=path_log)
 except KeyboardInterrupt as k:
     print(f'\n\n[TECLADO] interrupcion {k}\n')
     time.sleep(10)
